@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "518730570010",
+    "project_id": "microredesocialchristian",
+    "storage_bucket": "microredesocialchristian.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:518730570010:android:7b96090cfa37a8d6e4b4a3",
+        "android_client_info": {
+          "package_name": "br.com.ifsp.gidessu.microredesocial"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCEK2LiDDgOTfQWy6TuTIkFMUIXU4RN8pw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
