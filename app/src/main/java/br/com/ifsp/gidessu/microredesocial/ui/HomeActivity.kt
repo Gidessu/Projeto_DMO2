@@ -9,6 +9,7 @@ import br.com.ifsp.gidessu.microredesocial.util.Base64Converter
 import br.com.ifsp.gidessu.microredesocial.adapter.PostAdapter
 import br.com.ifsp.gidessu.microredesocial.data.model.Post
 import br.com.ifsp.gidessu.microredesocial.databinding.ActivityHomeBinding
+import br.com.ifsp.gidessu.microredesocial.ui.addpost.AddPostActivity
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.Query
@@ -27,19 +28,29 @@ class HomeActivity : AppCompatActivity() {
 
         firebaseAuth = FirebaseAuth.getInstance()
 
+        // Configuração do Botão de Logout
         binding.btnLogout.setOnClickListener {
             firebaseAuth.signOut()
             startActivity(Intent(this, MainActivity::class.java))
             finish()
         }
 
+        // Configuração do Botão de Perfil
         binding.btnProfile.setOnClickListener {
             val intent = Intent(this, ProfileActivity::class.java)
             startActivity(intent)
+            // Não chamamos finish() aqui para que o usuário possa voltar ao Feed
         }
 
+        // Configuração do Botão de Criar Post
+        binding.fabCreatePost.setOnClickListener {
+            startActivity(Intent(this, AddPostActivity::class.java))
+        }
+
+        // 1. Carregar dados do Perfil do Usuário Logado
         carregarDadosPerfil()
 
+        // 2. Carregar o Feed de Postagens
         configurarFeed()
     }
 
@@ -69,20 +80,28 @@ class HomeActivity : AppCompatActivity() {
             .orderBy("data", Query.Direction.DESCENDING)
             .get()
             .addOnSuccessListener { result ->
-                val listaPosts = mutableListOf<Post>()
-
-                for (document in result) {
-                    val post = document.toObject(Post::class.java)
-                    listaPosts.add(post)
+                if (result.isEmpty) {
+                    Toast.makeText(this, "Nenhum post encontrado!", Toast.LENGTH_SHORT).show()
+                    return@addOnSuccessListener
                 }
 
-                val adapter = PostAdapter(listaPosts.toTypedArray())
+                val listaPosts = mutableListOf<Post>()
+                for (document in result) {
+                    try {
+                        val post = document.toObject(Post::class.java)
+                        listaPosts.add(post)
+                    } catch (e: Exception) {
+                        android.util.Log.e("FirebaseError", "Erro ao converter: ${e.message}")
+                    }
+                }
 
+                val adapter = PostAdapter(listaPosts)
                 binding.rvPosts.layoutManager = LinearLayoutManager(this)
                 binding.rvPosts.adapter = adapter
             }
             .addOnFailureListener { e ->
-                Toast.makeText(this, "Erro ao carregar feed: ${e.message}", Toast.LENGTH_SHORT).show()
+                android.util.Log.e("FirebaseError", "Falha na query: ${e.message}")
+                Toast.makeText(this, "Erro: ${e.message}", Toast.LENGTH_LONG).show()
             }
     }
 }
