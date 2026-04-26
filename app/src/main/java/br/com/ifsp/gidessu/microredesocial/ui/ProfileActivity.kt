@@ -1,14 +1,12 @@
-package br.com.ifsp.gidessu.microredesocial
+package br.com.ifsp.gidessu.microredesocial.ui
 
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import br.com.ifsp.gidessu.microredesocial.util.Base64Converter
 import br.com.ifsp.gidessu.microredesocial.databinding.ActivityProfileBinding
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
@@ -17,6 +15,15 @@ import com.google.firebase.firestore.firestore
 class ProfileActivity : AppCompatActivity() {
     private lateinit var binding: ActivityProfileBinding
 
+    private val galeria = registerForActivityResult(
+        ActivityResultContracts.PickVisualMedia()) {
+            uri ->
+        if (uri != null) {
+            binding.edtProfile.setImageURI(uri)
+        } else {
+            Toast.makeText(this, "Nenhuma imagem foi selecionada", Toast.LENGTH_LONG).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,18 +35,10 @@ class ProfileActivity : AppCompatActivity() {
 
         saveProfile()
 
+        setupCancelButton()
     }
 
     fun changeProfile(){
-        val galeria = registerForActivityResult(
-            ActivityResultContracts.PickVisualMedia()) {
-                uri ->
-            if (uri != null) {
-                binding.edtProfile.setImageURI(uri)
-            } else {
-                Toast.makeText(this, "Nenhuma foto selecionada", Toast.LENGTH_LONG).show()
-            }
-        }
         binding.btnEditPhoto.setOnClickListener {
             galeria.launch(
                 PickVisualMediaRequest(
@@ -48,8 +47,17 @@ class ProfileActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupCancelButton() {
+        binding.btnCancel.setOnClickListener {
+            // Redireciona para a Home sem realizar alterações no Firestore
+            val intent = Intent(this, HomeActivity::class.java)
+            startActivity(intent)
+            finish()
+        }
+    }
+
     fun saveProfile() {
-        binding.btnEditPhoto.setOnClickListener {
+        binding.btnSave.setOnClickListener {
             val firebaseAuth = FirebaseAuth.getInstance()
             if (firebaseAuth.currentUser != null) {
                 val email = firebaseAuth.currentUser!!.email.toString()
@@ -71,8 +79,4 @@ class ProfileActivity : AppCompatActivity() {
             }
         }
     }
-
-
-
-
 }

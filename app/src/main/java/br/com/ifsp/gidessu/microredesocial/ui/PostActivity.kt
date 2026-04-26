@@ -1,4 +1,4 @@
-package br.com.ifsp.gidessu.microredesocial
+package br.com.ifsp.gidessu.microredesocial.ui
 
 import android.graphics.Bitmap
 import android.os.Bundle
