@@ -53,7 +53,7 @@ Cada publicação no feed é estruturada para fornecer informações rápidas e 
 
 ## 📺 Demonstração
 
-**[🎥 Clique aqui para assistir ao vídeo do projeto em funcionamento](https://github.com/Gidessu/Projeto_DMO2/blob/main/Videos/Showcase.webm)**
+**[🎥 Clique aqui para assistir ao vídeo do projeto em funcionamento](https://github.com/Gidessu/Projeto_DMO2/blob/main/Video/Showcase.webm)**
 
 ---
 *Este projeto foi desenvolvido com foco no estudo de interfaces adaptativas e integração de serviços em nuvem no ambiente Android.*
