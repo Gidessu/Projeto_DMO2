@@ -37,18 +37,21 @@ class SignUpActivity : AppCompatActivity() {
         }
 
         if(password != confirmation){
-            Toast.makeText(this, "Digite a mesma senha", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "As senhas não coincidem", Toast.LENGTH_LONG).show()
             return
         }
 
         firebaseAuth
-            .signInWithEmailAndPassword(email, password)
+            .createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                        startActivity(Intent(this, HomeActivity::class.java))
-                        finish()
+                    Toast.makeText(this, "Cadastro realizado com sucesso!", Toast.LENGTH_SHORT).show()
+                    startActivity(Intent(this, HomeActivity::class.java))
+                    finish()
                 } else {
-                    Toast.makeText(this, "Erro no login", Toast.LENGTH_LONG).show()
+                    // Aqui é bom mostrar o erro real do Firebase para ajudar no debug
+                    val erro = task.exception?.message ?: "Erro desconhecido"
+                    Toast.makeText(this, "Erro no cadastro: $erro", Toast.LENGTH_LONG).show()
                 }
             }
     }

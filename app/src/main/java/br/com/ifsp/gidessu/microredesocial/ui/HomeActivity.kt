@@ -20,88 +20,91 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var firebaseAuth: FirebaseAuth
     private val db = Firebase.firestore
 
+    private val listaCompletaPosts = mutableListOf<Post>()
+    private lateinit var postAdapter: PostAdapter
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         firebaseAuth = FirebaseAuth.getInstance()
 
-        // Configuração do Botão de Logout
+        postAdapter = PostAdapter(listaCompletaPosts)
+        binding.rvPosts.layoutManager = LinearLayoutManager(this)
+        binding.rvPosts.adapter = postAdapter
+
         binding.btnLogout.setOnClickListener {
             firebaseAuth.signOut()
             startActivity(Intent(this, MainActivity::class.java))
             finish()
         }
 
-        // Configuração do Botão de Perfil
         binding.btnProfile.setOnClickListener {
-            val intent = Intent(this, ProfileActivity::class.java)
-            startActivity(intent)
-            // Não chamamos finish() aqui para que o usuário possa voltar ao Feed
+            startActivity(Intent(this, ProfileActivity::class.java))
         }
 
-        // Configuração do Botão de Criar Post
         binding.fabCreatePost.setOnClickListener {
             startActivity(Intent(this, AddPostActivity::class.java))
         }
 
-        // 1. Carregar dados do Perfil do Usuário Logado
         carregarDadosPerfil()
-
-        // 2. Carregar o Feed de Postagens
         configurarFeed()
+        setupListeners()
+    }
+
+    private fun simplificarTexto(texto: String): String {
+        val temp = java.text.Normalizer.normalize(texto, java.text.Normalizer.Form.NFD)
+
+        val regex = Regex("\\p{InCombiningDiacriticalMarks}+")
+        return regex.replace(temp, "").lowercase().trim()
+    }
+
+    private fun setupListeners() {
+        binding.edtFiltro.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val filtro = simplificarTexto(s.toString())
+
+                val filtrados = listaCompletaPosts.filter { post ->
+                    simplificarTexto(post.localizacao).contains(filtro)
+                }
+
+                postAdapter.updateLista(filtrados)
+            }
+
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
     }
 
     private fun carregarDadosPerfil() {
         val email = firebaseAuth.currentUser?.email.toString()
-
         db.collection("usuarios").document(email).get()
             .addOnSuccessListener { document ->
                 if (document != null && document.exists()) {
                     val imageString = document.data?.get("fotoPerfil").toString()
                     val bitmap = Base64Converter.stringToBitmap(imageString)
-
                     binding.imgLogo.setImageBitmap(bitmap)
                     binding.txtUsername.text = document.data?.get("username").toString()
                     binding.txtNomeCompleto.text = document.data?.get("nomeCompleto").toString()
                 }
             }
-            .addOnFailureListener { e ->
-                Toast.makeText(this, "Erro ao carregar perfil: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
     }
-
-
 
     private fun configurarFeed() {
         db.collection("posts")
             .orderBy("data", Query.Direction.DESCENDING)
-            .get()
-            .addOnSuccessListener { result ->
-                if (result.isEmpty) {
-                    Toast.makeText(this, "Nenhum post encontrado!", Toast.LENGTH_SHORT).show()
-                    return@addOnSuccessListener
-                }
-
-                val listaPosts = mutableListOf<Post>()
-                for (document in result) {
-                    try {
-                        val post = document.toObject(Post::class.java)
-                        listaPosts.add(post)
-                    } catch (e: Exception) {
-                        android.util.Log.e("FirebaseError", "Erro ao converter: ${e.message}")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+                if (snapshot != null) {
+                    listaCompletaPosts.clear()
+                    for (doc in snapshot) {
+                        val post = doc.toObject(Post::class.java)
+                        listaCompletaPosts.add(post)
                     }
+                    postAdapter.updateLista(listaCompletaPosts)
                 }
-
-                val adapter = PostAdapter(listaPosts)
-                binding.rvPosts.layoutManager = LinearLayoutManager(this)
-                binding.rvPosts.adapter = adapter
-            }
-            .addOnFailureListener { e ->
-                android.util.Log.e("FirebaseError", "Falha na query: ${e.message}")
-                Toast.makeText(this, "Erro: ${e.message}", Toast.LENGTH_LONG).show()
             }
     }
 }

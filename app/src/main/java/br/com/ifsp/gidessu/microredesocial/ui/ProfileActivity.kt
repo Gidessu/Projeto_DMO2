@@ -59,20 +59,36 @@ class ProfileActivity : AppCompatActivity() {
     fun saveProfile() {
         binding.btnSave.setOnClickListener {
             val firebaseAuth = FirebaseAuth.getInstance()
-            if (firebaseAuth.currentUser != null) {
-                val email = firebaseAuth.currentUser!!.email.toString()
+            val user = firebaseAuth.currentUser
+
+            if (user != null) {
+                val email = user.email.toString()
                 val username = binding.username.text.toString()
                 val nomeCompleto = binding.nomeCompleto.text.toString()
+                val senha = binding.edtSenha.text.toString()
                 val fotoPerfilString = Base64Converter.drawableToString(binding.edtProfile.drawable)
+
                 val db = Firebase.firestore
+
                 val dados = hashMapOf(
                     "nomeCompleto" to nomeCompleto,
                     "username" to username,
                     "fotoPerfil" to fotoPerfilString
                 )
+
                 db.collection("usuarios").document(email)
                     .set(dados)
                     .addOnSuccessListener {
+                        if (senha.isNotEmpty()) {
+                            user.updatePassword(senha).addOnCompleteListener { task ->
+                                if (task.isSuccessful) {
+                                    Toast.makeText(this, "Perfil e senha atualizados!", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(this, "Erro ao atualizar senha: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        }
+
                         startActivity(Intent(this, HomeActivity::class.java))
                         finish()
                     }
