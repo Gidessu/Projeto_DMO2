@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import br.com.ifsp.gidessu.microredesocial.util.Base64Converter
 import br.com.ifsp.gidessu.microredesocial.adapter.PostAdapter
 import br.com.ifsp.gidessu.microredesocial.data.model.Post
@@ -12,6 +13,7 @@ import br.com.ifsp.gidessu.microredesocial.databinding.ActivityHomeBinding
 import br.com.ifsp.gidessu.microredesocial.ui.addpost.AddPostActivity
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.firestore
 
@@ -22,6 +24,10 @@ class HomeActivity : AppCompatActivity() {
 
     private val listaCompletaPosts = mutableListOf<Post>()
     private lateinit var postAdapter: PostAdapter
+
+    private var ultimoDoc: DocumentSnapshot? = null
+    private var carregando = false
+    private var fimDosDados = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -93,18 +99,52 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun configurarFeed() {
-        db.collection("posts")
-            .orderBy("data", Query.Direction.DESCENDING)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) return@addSnapshotListener
-                if (snapshot != null) {
-                    listaCompletaPosts.clear()
-                    for (doc in snapshot) {
-                        val post = doc.toObject(Post::class.java)
-                        listaCompletaPosts.add(post)
-                    }
-                    postAdapter.updateLista(listaCompletaPosts)
+        // Carrega os primeiros 5 posts
+        carregarPosts()
+
+        binding.rvPosts.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+
+                val layoutManager = recyclerView.layoutManager as LinearLayoutManager
+                val totalItens = layoutManager.itemCount
+                val ultimoVisivel = layoutManager.findLastVisibleItemPosition()
+
+                if (!carregando && !fimDosDados && ultimoVisivel >= totalItens - 2) {
+                    carregarPosts()
                 }
+            }
+        })
+    }
+
+    private fun carregarPosts() {
+        carregando = true
+
+        var query = db.collection("posts")
+            .orderBy("data", Query.Direction.DESCENDING)
+            .limit(5)
+
+        if (ultimoDoc != null) {
+            query = query.startAfter(ultimoDoc!!)
+        }
+
+        query.get()
+            .addOnSuccessListener { documentos ->
+                if (!documentos.isEmpty) {
+                    ultimoDoc = documentos.documents.last()
+
+                    val novosPosts = documentos.toObjects(Post::class.java)
+
+                    listaCompletaPosts.addAll(novosPosts)
+                    postAdapter.updateLista(listaCompletaPosts)
+                } else {
+                    fimDosDados = true
+                }
+                carregando = false
+            }
+            .addOnFailureListener {
+                carregando = false
+                Toast.makeText(this, "Erro ao carregar feed", Toast.LENGTH_SHORT).show()
             }
     }
 }
